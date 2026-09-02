@@ -1,0 +1,5 @@
+CompileFlags:
+    Add:
+        - -I/opt/devkitpro/libnds/include
+        - -I/opt/devkitpro/devkitARM/arm-none-eabi/include
+        - -DARM9
