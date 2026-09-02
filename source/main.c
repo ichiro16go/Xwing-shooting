@@ -2,7 +2,6 @@
 // main.c -- 初期化と状態遷移、メインループ
 //---------------------------------------------------------------------------------
 #include "game.h"
-#include <stdio.h>
 
 Game g;
 
@@ -84,6 +83,8 @@ static void update(void)
         waveUpdate();
         updateWorld();
         if (waveDone()) setState(ST_WARNING);
+        // デバッグ用: ボス戦をすぐ確認したいとき
+        if (down & KEY_SELECT) setState(ST_WARNING);
         break;
 
     case ST_WARNING:
