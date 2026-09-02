@@ -22,12 +22,12 @@ static void putPixel(u8 *tile, int x, int y, int color)
     else       *p = (*p & 0xF0) | (u8)(color & 0x0F);
 }
 
-// TODO: 切り分け用。1 にすると BG 全面をベタ塗りする
-#define STAR_DEBUG_FILL 1
-
 static void buildTiles(u16 *gfx)
 {
-    u8 tiles[STAR_TILES * 32];
+    // static にしてメインメモリへ置くこと。ローカル変数はスタック=DTCM に
+    // 乗るが、DMA コントローラは DTCM/ITCM(CPU 内蔵メモリ)を読めないため、
+    // スタック上のバッファを dmaCopy すると何も転送されない。
+    static u8 tiles[STAR_TILES * 32];
     memset(tiles, 0, sizeof(tiles));
 
     // タイル 1..7 に、位置と明るさを変えた星を 1〜2 個ずつ置く
@@ -42,15 +42,9 @@ static void buildTiles(u16 *gfx)
         if (i & 1) putPixel(t, (spot[i][0] + 4) & 7, (spot[i][1] + 3) & 7, 1);
     }
 
-    // DMA は CPU のデータキャッシュを見ない。tiles[] は直前に CPU が書いた
-    // スタック上のバッファなので、まだキャッシュにいてメインメモリには
-    // 届いていない可能性がある。フラッシュしてから転送する。
-    // (grit が吐いた const 配列を転送するときは書き込んでいないので不要)
-#if STAR_DEBUG_FILL
-    // タイル 1 を全画素べた塗りにする(BG が表示されているかの確認用)
-    for (i = 0; i < 32; i++) tiles[32 + i] = 0x33;
-#endif
-
+    // DMA は CPU のデータキャッシュを見ない。直前に CPU が書いた内容は
+    // まだキャッシュにいてメインメモリに届いていないので、フラッシュしてから
+    // 転送する。(grit が吐いた const 配列は書き込んでいないので不要)
     DC_FlushRange(tiles, sizeof(tiles));
     dmaCopy(tiles, gfx, sizeof(tiles));
 }
@@ -62,12 +56,7 @@ static void buildMap(u16 *map, int density)
 {
     int i;
     for (i = 0; i < 32 * 32; i++)
-#if STAR_DEBUG_FILL
-        map[i] = 1;
-#else
         map[i] = (rndRange(density) == 0) ? (u16)(1 + rndRange(7)) : 0;
-#endif
-    (void)density;
 }
 
 void starInit(void)
