@@ -82,7 +82,7 @@ Nintendo DS (libnds) で書いた縦スクロールシューティング。
 | GAME OVER | START / SELECT | リスタート / タイトルへ |
 | CLEAR | START / SELECT | もう一度 / タイトルへ |
 
-ショットはスコアで自動的に強化されます（10,000 で LV.2、30,000 で LV.3）。
+ショットはスコアで自動的に強化されます（3,000 で LV.2、8,000 で LV.3）。
 ボスは HP 残量で 3 フェーズに移行します。詳細は [docs/design.md](docs/design.md)。
 
 <p align="right">(<a href="#top">トップへ</a>)</p>

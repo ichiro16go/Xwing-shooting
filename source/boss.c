@@ -9,7 +9,7 @@
 
 Boss boss;
 
-#define BOSS_MAX_HP 420
+#define BOSS_MAX_HP 340
 #define BOSS_TOP    FX(46)
 #define BOSS_LEFT   FX(44)
 #define BOSS_RIGHT  FX(SCR_W - 44)
@@ -86,9 +86,10 @@ static void attack(void)
             radial(12, FX(2), 3, boss.t * 97);
             boss.fireTimer = 90;
         } else {
-            shotFireAimed(boss.x - FX(20), boss.y + FX(12), FX(3), 1);
-            shotFireAimed(boss.x + FX(20), boss.y + FX(12), FX(3), 1);
-            boss.fireTimer = 46;
+            // 狙い撃ちは自機の移動速度(3.0)を超えないこと
+            shotFireAimed(boss.x - FX(20), boss.y + FX(12), FX(2) + 128, 1);
+            shotFireAimed(boss.x + FX(20), boss.y + FX(12), FX(2) + 128, 1);
+            boss.fireTimer = 54;
         }
         break;
 
@@ -97,9 +98,10 @@ static void attack(void)
             radial(16, FX(2) + 64, 3, boss.t * 61);
             boss.fireTimer = 70;
         } else {
-            spread(5, FX(3), 1);
-            shotFireAimed(boss.x, boss.y + FX(18), FX(4), 1);
-            boss.fireTimer = 34;
+            // 拡散と狙い撃ちが同時に来る一番きつい所。間隔を空けて逃げ場を作る。
+            spread(5, FX(2) + 128, 1);
+            shotFireAimed(boss.x, boss.y + FX(18), FX(3), 1);
+            boss.fireTimer = 42;
         }
         break;
     }
@@ -153,7 +155,7 @@ void bossUpdate(void)
 
     // --- 最終フェーズは護衛を呼ぶ ---
     if (boss.phase == 2 && --boss.summonTimer <= 0) {
-        boss.summonTimer = 300;
+        boss.summonTimer = 420;
         enemySpawn(EK_INTERCEPTOR, PAT_HOVER, FX(60),  FX(-20), 0, FX(2));
         enemySpawn(EK_INTERCEPTOR, PAT_HOVER, FX(196), FX(-20), 0, FX(2));
     }

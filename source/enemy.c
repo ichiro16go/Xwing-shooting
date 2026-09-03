@@ -113,11 +113,12 @@ static void shoot(Enemy *e)
     }
 
     if (e->kind == EK_INTERCEPTOR) {
-        shotFireAimed(e->x, e->y + FX(8), FX(3), 1);
-        e->fireTimer = 70 + rndRange(50);
+        // 狙い撃ちは自機の移動速度(3.0)より遅くする。速いと避けようがない。
+        shotFireAimed(e->x, e->y + FX(8), FX(2) + 128, 1);
+        e->fireTimer = 85 + rndRange(55);
     } else {
         shotFireEnemy(e->x, e->y + FX(8), 0, FX(2) + 64, 3);
-        e->fireTimer = 100 + rndRange(80);
+        e->fireTimer = 115 + rndRange(85);
     }
 }
 

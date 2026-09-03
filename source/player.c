@@ -5,7 +5,8 @@
 
 Player player;
 
-#define SPD        (FX(2) + 128)     // 2.5 px / frame
+// 敵の狙い撃ちより速くしておくこと。自機より速い誘導弾は原理的に避けられない。
+#define SPD        (FX(3))           // 3.0 px / frame
 #define MARGIN_X   16
 #define MARGIN_TOP 20
 #define MARGIN_BOT 12
@@ -65,6 +66,9 @@ static void bomb(void)
     enemyDamageAll(8);
     if (boss.alive) bossDamage(60);
 
+    // 弾を消した直後に撃ち返されると緊急回避にならないので、少しだけ無敵にする
+    if (player.inv < 90) player.inv = 90;
+
     g.flash = 14;
     g.shake = 20;
 
@@ -119,10 +123,12 @@ void playerUpdate(void)
 
     if (player.inv > 0) player.inv--;
 
-    // スコアに応じてショットが強化される
-    if (g.score >= 30000)      player.power = 3;
-    else if (g.score >= 10000) player.power = 2;
-    else                       player.power = 1;
+    // スコアに応じてショットが強化される。
+    // 雑魚を全滅させても 10,700 点にしかならない(wave.c の stage[] の合計)ので、
+    // しきい値はそれよりずっと手前に置くこと。ボス戦は LV.3 で戦う想定。
+    if (g.score >= 8000)      player.power = 3;
+    else if (g.score >= 3000) player.power = 2;
+    else                      player.power = 1;
 }
 
 void playerDamage(void)
@@ -132,6 +138,9 @@ void playerDamage(void)
     player.alive = 0;
     player.lives--;
     player.deadTimer = 90;
+
+    // 復帰位置に弾が残っていると連続で落とされるので、被弾時に敵弾を一掃する
+    shotClearEnemy();
 
     effectSpawn(player.x, player.y, FX_BIG);
     effectSpawn(player.x - FX(8), player.y + FX(6), FX_SMALL);

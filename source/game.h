@@ -147,7 +147,7 @@ extern Player player;
 
 #define PLAYER_W 32
 #define PLAYER_H 32
-#define PLAYER_HIT 8     // 実際の当たり判定は見た目より小さくする
+#define PLAYER_HIT 6     // 実際の当たり判定は見た目より小さくする
 
 void playerReset(int fullRestart);
 void playerUpdate(void);
