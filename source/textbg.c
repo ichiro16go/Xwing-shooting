@@ -118,6 +118,23 @@ void textIdentity(int ox, int oy)
     REG_BG2Y  = oy << 8;
 }
 
+//---------------------------------------------------------------------------------
+// 拡大表示。テクスチャの (cx, cy) が画面の中央に来るように、scale 倍で映す。
+//
+// 変形行列に入れるのは倍率そのものではなく「画面 1px が映すテクスチャ px 数」=
+// 倍率の逆数。BG2X / BG2Y も画面 (0, 0) が映すテクスチャ座標なので、中央から
+// 半画面ぶんだけ戻した位置になる。
+//---------------------------------------------------------------------------------
+void textZoom(fx scale, int cx, int cy)
+{
+    int inv = (1 << (FXS * 2)) / scale;   // 8.8。FX(1) なら 256 = 等倍
+
+    REG_BG2PA = (s16)inv;  REG_BG2PB = 0;
+    REG_BG2PC = 0;         REG_BG2PD = (s16)inv;
+    REG_BG2X  = (cx << FXS) - inv * (SCR_W / 2);
+    REG_BG2Y  = (cy << FXS) - inv * (SCR_H / 2);
+}
+
 void textShow(int on)
 {
     if (on) bgShow(layer);

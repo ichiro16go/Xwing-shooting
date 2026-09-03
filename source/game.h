@@ -118,6 +118,7 @@ void textPut(int col, int row, const char *s);
 void textPutCenter(int row, const char *s);   // マップ中央に揃えて置く
 void textSetColor(u16 color);
 void textIdentity(int ox, int oy);            // 等倍・回転なしで表示する
+void textZoom(fx scale, int cx, int cy);      // (cx, cy) を画面中央に scale 倍で映す
 void textShow(int on);
 
 //---------------------------------------------------------------------------------
@@ -127,6 +128,12 @@ void openingEnter(void);   // ST_CRAWL へ(プロローグから始める)
 void titleEnter(void);     // ST_TITLE へ
 void openingUpdate(void);
 void openingRender(void);
+
+//---------------------------------------------------------------------------------
+// gameover.c -- 上画面のゲームオーバー表示
+//---------------------------------------------------------------------------------
+void gameoverEnter(void);    // ST_GAMEOVER へ
+void gameoverRender(void);   // ST_GAMEOVER 以外では何も出さない
 
 //---------------------------------------------------------------------------------
 // player.c -- 自機 X-wing

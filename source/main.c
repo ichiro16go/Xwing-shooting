@@ -65,9 +65,31 @@ static int inPlay(void)
     return g.state == ST_PLAY || g.state == ST_WARNING || g.state == ST_BOSS;
 }
 
+//---------------------------------------------------------------------------------
+// デバッグ用の隠しコマンド。L + R を押しながら:
+//   SELECT -> どの場面からでもタイトル画面へ
+//   START  -> オープニングを頭からやり直す(scrollの見た目を確認したいとき)
+//
+// 演出の作り込み中に、毎回ゲームを進めてから見直すのは手間なので用意している。
+// 通常のプレイでは L / R を使わないので、事故で入ることはない。
+//---------------------------------------------------------------------------------
+#define DEBUG_HOLD (KEY_L | KEY_R)
+
+static int debugJump(int down)
+{
+    if ((keysHeld() & DEBUG_HOLD) != DEBUG_HOLD) return 0;
+
+    if (down & KEY_SELECT) { g.paused = 0; titleEnter();   return 1; }
+    if (down & KEY_START)  { g.paused = 0; openingEnter(); return 1; }
+    return 0;
+}
+
+//---------------------------------------------------------------------------------
 static void update(void)
 {
     int down = keysDown();
+
+    if (debugJump(down)) return;
 
     // START で一時停止 / 再開
     if (inPlay()) {
@@ -140,6 +162,7 @@ static void render(void)
     effectRender();
     bossRender();
     openingRender();     // ST_CRAWL / ST_TITLE 以外では何も出さない
+    gameoverRender();    // ST_GAMEOVER 以外では何も出さない
     starApply();
 
     // 被弾やボムのときに画面を白く飛ばす

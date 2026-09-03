@@ -1,39 +1,46 @@
 //---------------------------------------------------------------------------------
-// opening.c -- プロローグ -> オープニングクロール -> タイトル画面
+// opening.c -- プロローグ -> オープニングscroll -> タイトル画面
 //
-// クロールは擬似 3D(いわゆる mode 7)。文字を貼った平面を床に見立て、回転BG の
-// 変形行列をスキャンラインごとに差し替えて奥へ流す。
+// scrollは擬似 3D。文字を貼った 1 枚の平面を奥へ流しているだけで、回転BG の
+// 変形行列をスキャンラインごとに差し替えて遠近感を作る。
 //
-//   d      = y - H0                 その行から地平線までの距離(H0 は画面外の上)
-//   PA     = CAM_H / d              1 画面ピクセルあたりのテクスチャ幅
-//   texRow = BASE + scroll - K / d  その行が映すテクスチャの行 (K = CAM_H * FOCAL)
+//   d     = y - H0        その行から消失点までの距離(H0 は画面外の上)
+//   PA    = CAM_H / d     1 画面ピクセルが映すテクスチャ幅 = 倍率の逆数
 //
-//        y=0   ~~~~~~~~~~~~   地平線の少し下。文字は潰れて消える
+//        y=0   ~~~~~~~~~~~~   奥。文字は一番小さく、星空に溶けて消える
 //                 ------
 //                 ------
 //   y=191   ==============    手前。文字が一番大きい
 //
-// scroll を増やすと texRow が全体に増え、文字が奥へ吸い込まれていく。
-// d が小さい(画面上部)ほど PA が大きく = 文字が小さくなり、遠近感が出る。
+// 縦は PA を画面の下から積み上げて決める(tabY)。1 画面ラインが進むテクセル数を
+// 横の PA と同じにすると、行ごとに縦横おなじ倍率で拡縮したことになり、文字の
+// 縦横比が画面のどこでも崩れない。
 //
-// 遠くの文字はドットが潰れて汚いので、行ごとのアルファ値で星空に溶かして消す。
+// 床として厳密に投影する(texRow = BASE - K/d)と奥へ行くほど縦だけが強く潰れ、
+// 8px のフォントでは 1〜2px まで潰れて完全に読めなくなる。見た目の正しさより
+// 読めることを優先して、ここでは一様拡縮にしている。
+//
+// scroll を増やすとテクスチャ行が全体に増え、文字が奥へ吸い込まれていく。
 //---------------------------------------------------------------------------------
 #include "game.h"
 
 //---------------------------------------------------------------------------------
-// クロールの見た目を決める定数
+// scrollの見た目を決める定数
 //---------------------------------------------------------------------------------
-#define H0        (-20)                    // 地平線(画面より 20px 上)
-#define CAM_H     155                      // カメラの高さ(テクスチャ px)
-#define FOCAL     200                      // 焦点距離(画面 px)
-#define K         (CAM_H * FOCAL)
-#define BASE      (K / (SCR_H - 1 - H0))   // scroll=0 で画面最下段がテクスチャ 0 行目
+// 消失点とカメラ高。この 2 つで手前と奥の倍率が決まる。
+//   手前 y=191: (191 - H0) / CAM_H = 1.30 倍   22 文字がちょうど画面幅に収まる
+//   奥   y=0  : (  0 - H0) / CAM_H = 0.60 倍   これ以上小さいとフォントが潰れる
+// 画面に載るテクスチャは CAM_H * ln((191 - H0) / -H0) = 約 210px = 本文 8〜9 行。
+#define H0        (-164)  // 消失点(画面より 164px 上)
+#define CAM_H     273     // カメラの高さ(テクスチャ px)。大きいほど文字が小さい
 
-#define FADE_HI   120     // これより下は文字がはっきり見える
-#define FADE_LO    50     // これより上は完全に星空に溶ける
+#define FADE_HI    80     // これより下は文字がはっきり見える
+#define FADE_LO     8     // これより上は完全に星空に溶ける
 
 #define SPEED     152     // 8.8 固定小数。約 0.6 テクスチャ px / フレーム
-#define CRAWL_END FX(780) // 最後の行が消えきる scroll
+// 本文の最終行の下端(タイル行 60 = 488px)が画面の上へ抜けきる scroll。
+// 本文を増やすとここも延ばす必要がある。足りないと空の星空でしばらく止まる。
+#define CRAWL_END FX(700)
 
 #define PROLOGUE_HOLD 150 // 「遠い昔…」を出しておくフレーム数
 #define PROLOGUE_FADE  30 // そこから消えるまで
@@ -41,8 +48,12 @@
 #define SKIP_KEYS (KEY_START | KEY_A | KEY_TOUCH)
 #define SKIP_LOCK  10     // 押しっぱなしで素通りしないための無視フレーム
 
-#define COL_CRAWL RGB15(31, 29,  4)   // クロールとタイトルの黄色
+#define COL_CRAWL RGB15(31, 29,  4)   // scrollとタイトルの黄色
 #define COL_INTRO RGB15( 9, 14, 31)   // プロローグの青
+
+#define CRAWL_TOP   4     // 本文を置き始めるタイル行。1 行目が下から入るまでの間
+#define ROW_TEXT    3     // 本文 1 行の高さ(タイル)
+#define ROW_BLANK   2     // 空行の高さ(タイル)
 
 #define LOGO_Y     34     // ロゴスプライトの上端
 #define ROW_SUB    15     // タイトルの副題
@@ -50,7 +61,7 @@
 #define ROW_HINT   21     // 操作の案内
 
 //---------------------------------------------------------------------------------
-// クロール本文。"" は行送りだけの空行。1 行 22 文字まで(手前で画面幅に収まる幅)
+// scroll本文。"" は行送りだけの空行。1 行 22 文字まで(手前で画面幅に収まる幅)
 //---------------------------------------------------------------------------------
 static const char *const crawlText[] = {
     "EPISODE  I",
@@ -86,14 +97,17 @@ static s32 tabY[SCR_H];      // texRow の scroll を含まない部分
 static u16 tabAlpha[SCR_H];
 
 static s32 scroll;           // 8.8 固定小数
-static int phase;            // 0: プロローグ 1: クロール
+static int phase;            // 0: プロローグ 1: scroll
 static int t;                // 現在のフェーズに入ってからのフレーム数
 static int blinkShown;
 
 static void buildTables(void)
 {
+    // 画面最下段を texRow 0 として、上の行へ 1 本ずつ PA ぶん戻していく。
+    // 積分を閉じた式にすると対数になるので、そのまま足し込む方が素直で速い。
+    s32 acc = 0;
     int y;
-    for (y = 0; y < SCR_H; y++) {
+    for (y = SCR_H - 1; y >= 0; y--) {
         int d  = y - H0;
         int pa = (CAM_H << 8) / d;
         int a  = (y >= FADE_HI) ? 16
@@ -102,8 +116,10 @@ static void buildTables(void)
 
         tabPa[y]    = (s16)pa;
         tabX[y]     = (TEXT_CENTER_X << 8) - pa * (SCR_W / 2);
-        tabY[y]     = (BASE << 8) - ((K << 8) / d);
+        tabY[y]     = acc;
         tabAlpha[y] = (u16)(a | ((16 - a) << 8));   // EVA=文字 / EVB=星空
+
+        acc -= pa;   // 1 行上がると、映るテクスチャは PA 行ぶん奥へ戻る
     }
 }
 
@@ -128,11 +144,11 @@ static void crawlHBlank(void)
 static void buildCrawlMap(void)
 {
     textClear();
-    int row = 2, i;      // タイル行。先頭に少し余白を置く
+    int row = CRAWL_TOP, i;
     for (i = 0; i < CRAWL_LINES; i++) {
-        if (crawlText[i][0] == '\0') { row += 2; continue; }
+        if (crawlText[i][0] == '\0') { row += ROW_BLANK; continue; }
         textPutCenter(row, crawlText[i]);
-        row += 3;        // 1 行 24px。詰めすぎると奥で潰れて読めなくなる
+        row += ROW_TEXT;   // 1 行 24px。詰めすぎると奥で潰れて読めなくなる
     }
 }
 
@@ -167,6 +183,10 @@ static void clearWorld(void)
 //---------------------------------------------------------------------------------
 void openingEnter(void)
 {
+    // 途中(scroll 中やプレイ中)から呼び直されても素の状態から始められるように、
+    // 行ごとの書き換えを止めてから作り直す。
+    irqDisable(IRQ_HBLANK);
+
     gameSetState(ST_CRAWL);
     clearWorld();
 
@@ -179,7 +199,7 @@ void openingEnter(void)
     textIdentity(TEXT_CENTER_X - SCR_W / 2, 0);
     textShow(1);
 
-    // 文字を星空に溶かすためのアルファ合成。クロールでは行ごとに EVA を変える。
+    // 文字を星空に溶かすためのアルファ合成。scrollでは行ごとに EVA を変える。
     REG_BLDCNT   = BLEND_ALPHA | BLEND_SRC_BG2 |
                    BLEND_DST_BG0 | BLEND_DST_BG1 | BLEND_DST_BACKDROP;
     REG_BLDALPHA = 16 | (0 << 8);
@@ -264,7 +284,7 @@ void openingRender(void)
     for (i = 0; i < LOGO_FRAMES; i++)
         oamClearSprite(&oamMain, OAM_LOGO + i);
 
-    // プロローグは画面全体を一様に薄くして消す(クロールは HBlank 側で行ごと)
+    // プロローグは画面全体を一様に薄くして消す(scrollは HBlank 側で行ごと)
     if (g.state == ST_CRAWL && phase == 0) {
         int a = 16;
         if (t > PROLOGUE_HOLD) a = 16 - 16 * (t - PROLOGUE_HOLD) / PROLOGUE_FADE;

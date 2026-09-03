@@ -81,6 +81,8 @@ Nintendo DS (libnds) で書いた縦スクロールシューティング。
 | プレイ中 | SELECT | **デバッグ用**: ウェーブを飛ばしてボス戦へ |
 | GAME OVER | START / SELECT | リスタート / タイトルへ |
 | CLEAR | START / SELECT | もう一度 / タイトルへ |
+| どこでも | L + R + SELECT | **デバッグ用**: タイトル画面へ戻る |
+| どこでも | L + R + START | **デバッグ用**: オープニングを頭からやり直す |
 
 ショットはスコアで自動的に強化されます（3,000 で LV.2、8,000 で LV.3）。
 ボスは HP 残量で 3 フェーズに移行します。詳細は [docs/design.md](docs/design.md)。

@@ -89,8 +89,7 @@ void playerUpdate(void)
             if (player.lives > 0) {
                 playerReset(0);
             } else {
-                g.state = ST_GAMEOVER;
-                g.timer = 0;
+                gameoverEnter();
             }
         }
         return;
