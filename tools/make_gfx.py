@@ -420,6 +420,104 @@ def draw_blast(step):
 
 
 # --------------------------------------------------------------------------
+# タイトルロゴ: X-WING (256x64 / 64x64 を 4 枚に分割)
+#
+# 太い書体で字形を塗りつぶしてから内側をくり抜き、輪郭だけを残す。
+# 抜けたところは透過なので、後ろの星空がそのまま透ける。
+# --------------------------------------------------------------------------
+PAL_LOGO = [
+    C("ff00ff"),  # 0 透過
+    C("ffe81f"),  # 1 ロゴの黄色
+    C("7a5c00"),  # 2 外周の影(星空との境目)
+]
+
+LOGO_W, LOGO_H = 256, 64
+LOGO_TOP, LOGO_BOT = 4, 57      # 字の上端 / 下端
+LOGO_STROKE = 12                # 画の太さ
+LOGO_RING = 2                   # 残す輪郭の太さ
+
+
+def _slant(im, xa, ya, xb, yb, t, c):
+    """縦の太さを t に保った斜めの画。端は水平に切れる。"""
+    h = t // 2
+    im.poly([(int(xa) - h, int(ya)), (int(xa) + h, int(ya)),
+             (int(xb) + h, int(yb)), (int(xb) - h, int(yb))], c)
+
+
+def _glyph(im, ch, x, w, c):
+    y0, y1, t = LOGO_TOP, LOGO_BOT, LOGO_STROKE
+    cy = (y0 + y1) // 2
+    if ch == "X":
+        _slant(im, x + t // 2, y0, x + w - t // 2, y1, t, c)
+        _slant(im, x + w - t // 2, y0, x + t // 2, y1, t, c)
+    elif ch == "-":
+        im.rect(x, cy - t // 2, x + w - 1, cy + t // 2, c)
+    elif ch == "W":
+        mid = y0 + (y1 - y0) // 4          # 真ん中の山は少し下げる
+        px = [x + t // 2, x + int(w * 0.30), x + w // 2,
+              x + int(w * 0.70), x + w - t // 2]
+        _slant(im, px[0], y0, px[1], y1, t, c)
+        _slant(im, px[1], y1, px[2], mid, t, c)
+        _slant(im, px[2], mid, px[3], y1, t, c)
+        _slant(im, px[3], y1, px[4], y0, t, c)
+    elif ch == "I":
+        im.rect(x + w // 2 - t // 2, y0, x + w // 2 + t // 2, y1, c)
+    elif ch == "N":
+        im.rect(x, y0, x + t - 1, y1, c)
+        im.rect(x + w - t, y0, x + w - 1, y1, c)
+        _slant(im, x + t // 2, y0, x + w - t // 2, y1, t, c)
+    elif ch == "G":
+        cx = x + w // 2
+        im.ellipse(cx, cy, w // 2, (y1 - y0) // 2, c)
+        im.ellipse(cx, cy, w // 2 - t, (y1 - y0) // 2 - t, 0)
+        im.rect(cx, y0, x + w, cy - t, 0)          # 右上を開けて C にする
+        im.rect(cx + 2, cy - t, x + w - 1, cy, c)  # 中央の横棒
+
+
+def _hollow(im, t, c):
+    """塗りの内側(縁から t 以上離れた画素)を抜いて輪郭だけにする"""
+    inner = []
+    for y in range(im.h):
+        for x in range(im.w):
+            if im.px[y][x] != c:
+                continue
+            if all(im.get(x + dx, y + dy)
+                   for dy in range(-t, t + 1) for dx in range(-t, t + 1)):
+                inner.append((x, y))
+    for x, y in inner:
+        im.set(x, y, 0)
+
+
+def draw_logo():
+    # 字幅と字間。合計 241px を 256px の中央に置く
+    glyphs = [("X", 42), ("-", 18), ("W", 56), ("I", 16), ("N", 42), ("G", 42)]
+    gap = 5
+    total = sum(w for _, w in glyphs) + gap * (len(glyphs) - 1)
+
+    im = Img(LOGO_W, LOGO_H)
+    x = (LOGO_W - total) // 2
+    for ch, w in glyphs:
+        _glyph(im, ch, x, w, 1)
+        x += w + gap
+
+    _hollow(im, LOGO_RING, 1)
+    im.outline(2)
+    return im
+
+
+def split_frames(im, size):
+    """横に並んだ絵を size x size のコマへ切り分ける"""
+    out = []
+    for i in range(im.w // size):
+        f = Img(size, size)
+        for y in range(min(size, im.h)):
+            for x in range(size):
+                f.px[y][x] = im.px[y][i * size + x]
+        out.append(f)
+    return out
+
+
+# --------------------------------------------------------------------------
 def main():
     os.makedirs(GFX, exist_ok=True)
     print("generating gfx/")
@@ -446,6 +544,12 @@ def main():
         os.path.join(GFX, "spr_blast.png"),
         [draw_blast(i) for i in range(4)],
         PAL_BLAST,
+    )
+
+    write_png(
+        os.path.join(GFX, "spr_logo.png"),
+        split_frames(draw_logo(), 64),
+        PAL_LOGO,
     )
 
 

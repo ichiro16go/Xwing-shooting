@@ -33,14 +33,17 @@ typedef s32 fx;
 #define OAM_ESHOT   (OAM_ENEMY + MAX_ENEMY)
 #define MAX_EFFECT  16
 #define OAM_EFFECT  (OAM_ESHOT + MAX_ESHOT)
+#define LOGO_FRAMES 4
+#define OAM_LOGO    (OAM_EFFECT + MAX_EFFECT)
 
 // スプライトパレットのバンク番号(16色 x 16バンク)
-enum { PB_XWING = 0, PB_TIE, PB_BOSS, PB_SHOT, PB_BLAST };
+enum { PB_XWING = 0, PB_TIE, PB_BOSS, PB_SHOT, PB_BLAST, PB_LOGO };
 
 //---------------------------------------------------------------------------------
 // ゲーム状態
 //---------------------------------------------------------------------------------
 typedef enum {
+    ST_CRAWL,      // オープニング(プロローグ -> クロール)
     ST_TITLE,      // タイトル
     ST_PLAY,       // 通常ウェーブ
     ST_WARNING,    // ボス出現警告
@@ -64,6 +67,7 @@ extern Game g;
 
 void gameStart(void);   // タイトル -> プレイ開始
 void gameAddScore(int n);
+void gameSetState(GameState s);
 
 // 疑似乱数(xorshift)
 u32 rnd(void);
@@ -89,6 +93,7 @@ extern u16 *gfxTie[2];     // 0:TIEファイター 1:TIEインターセプター
 extern u16 *gfxBoss;
 extern u16 *gfxShot[4];    // 0:自機赤 1:敵緑 2:自機青(強化) 3:敵球
 extern u16 *gfxBlast[4];   // 爆発アニメ 4コマ
+extern u16 *gfxLogo[LOGO_FRAMES];  // タイトルロゴを横に 4 分割したもの
 
 void gfxInit(void);
 
@@ -98,6 +103,30 @@ void gfxInit(void);
 void starInit(void);
 void starUpdate(int speed);   // speed は 8.8 固定小数のスクロール量
 void starApply(void);
+
+//---------------------------------------------------------------------------------
+// textbg.c -- BG2(回転BG)の文字レイヤ
+//   オープニングとタイトルが共有する。マップは 64x64 タイル(= 512px 四方)。
+//---------------------------------------------------------------------------------
+#define TEXT_COLS     64
+#define TEXT_ROWS     64
+#define TEXT_CENTER_X (TEXT_COLS * 8 / 2)   // マップ中央の x(テクスチャ px)
+
+void textInit(void);
+void textClear(void);
+void textPut(int col, int row, const char *s);
+void textPutCenter(int row, const char *s);   // マップ中央に揃えて置く
+void textSetColor(u16 color);
+void textIdentity(int ox, int oy);            // 等倍・回転なしで表示する
+void textShow(int on);
+
+//---------------------------------------------------------------------------------
+// opening.c -- プロローグ -> オープニングクロール -> タイトル画面
+//---------------------------------------------------------------------------------
+void openingEnter(void);   // ST_CRAWL へ(プロローグから始める)
+void titleEnter(void);     // ST_TITLE へ
+void openingUpdate(void);
+void openingRender(void);
 
 //---------------------------------------------------------------------------------
 // player.c -- 自機 X-wing

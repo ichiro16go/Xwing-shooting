@@ -8,12 +8,14 @@
 #include "spr_boss.h"
 #include "spr_shots.h"
 #include "spr_blast.h"
+#include "spr_logo.h"
 
 u16 *gfxXwing[3];
 u16 *gfxTie[2];
 u16 *gfxBoss;
 u16 *gfxShot[4];
 u16 *gfxBlast[4];
+u16 *gfxLogo[LOGO_FRAMES];
 
 //---------------------------------------------------------------------------------
 // 16色パレットを SPRITE_PALETTE の指定バンクへ
@@ -50,8 +52,10 @@ void gfxInit(void)
     vramSetBankA(VRAM_A_MAIN_BG_0x06000000);
     vramSetBankB(VRAM_B_MAIN_SPRITE_0x06400000);
 
-    videoSetMode(MODE_0_2D | DISPLAY_BG0_ACTIVE | DISPLAY_BG1_ACTIVE |
-                 DISPLAY_SPR_ACTIVE | DISPLAY_SPR_1D);
+    // BG2 を回転BG(オープニングの文字レイヤ)にするので MODE_2。
+    // MODE_2 では BG0/BG1 がテキスト、BG2/BG3 が回転BG になる。
+    videoSetMode(MODE_2_2D | DISPLAY_BG0_ACTIVE | DISPLAY_BG1_ACTIVE |
+                 DISPLAY_BG2_ACTIVE | DISPLAY_SPR_ACTIVE | DISPLAY_SPR_1D);
 
     oamInit(&oamMain, SpriteMapping_1D_32, false);
 
@@ -60,6 +64,7 @@ void gfxInit(void)
     loadPal(spr_bossPal,  PB_BOSS);
     loadPal(spr_shotsPal, PB_SHOT);
     loadPal(spr_blastPal, PB_BLAST);
+    loadPal(spr_logoPal,  PB_LOGO);
 
     int i;
     for (i = 0; i < 3; i++)
@@ -71,4 +76,6 @@ void gfxInit(void)
         gfxShot[i]  = loadFrame(spr_shotsTiles, i,   8 * 8 / 2, SpriteSize_8x8);
     for (i = 0; i < 4; i++)
         gfxBlast[i] = loadFrame(spr_blastTiles, i, 16 * 16 / 2, SpriteSize_16x16);
+    for (i = 0; i < LOGO_FRAMES; i++)
+        gfxLogo[i]  = loadFrame(spr_logoTiles,  i, 64 * 64 / 2, SpriteSize_64x64);
 }

@@ -23,7 +23,7 @@ void gameAddScore(int n)
 }
 
 //---------------------------------------------------------------------------------
-static void setState(GameState s)
+void gameSetState(GameState s)
 {
     g.state = s;
     g.timer = 0;
@@ -31,6 +31,8 @@ static void setState(GameState s)
 
 void gameStart(void)
 {
+    textShow(0);          // オープニングの文字レイヤを片付ける
+
     g.score = 0;
     g.flash = 0;
     g.shake = 0;
@@ -43,7 +45,7 @@ void gameStart(void)
     waveReset();
     boss.alive = 0;
 
-    setState(ST_PLAY);
+    gameSetState(ST_PLAY);
 }
 
 //---------------------------------------------------------------------------------
@@ -74,24 +76,24 @@ static void update(void)
     }
 
     switch (g.state) {
+    case ST_CRAWL:
     case ST_TITLE:
-        // 念のため数フレームは入力を受けない
-        if (g.timer > 15 && (down & KEY_START)) gameStart();
+        openingUpdate();
         break;
 
     case ST_PLAY:
         waveUpdate();
         updateWorld();
-        if (waveDone()) setState(ST_WARNING);
+        if (waveDone()) gameSetState(ST_WARNING);
         // デバッグ用: ボス戦をすぐ確認したいとき
-        if (down & KEY_SELECT) setState(ST_WARNING);
+        if (down & KEY_SELECT) gameSetState(ST_WARNING);
         break;
 
     case ST_WARNING:
         updateWorld();
         if (g.timer > 180) {
             bossStart();
-            setState(ST_BOSS);
+            gameSetState(ST_BOSS);
         }
         break;
 
@@ -104,7 +106,7 @@ static void update(void)
         updateWorld();
         if (g.timer > 90) {
             if (down & KEY_START)  gameStart();      // もう一度遊ぶ
-            if (down & KEY_SELECT) setState(ST_TITLE);
+            if (down & KEY_SELECT) titleEnter();
         }
         break;
 
@@ -112,7 +114,7 @@ static void update(void)
         updateWorld();
         if (g.timer > 60) {
             if (down & KEY_START)  gameStart();      // その場でリスタート
-            if (down & KEY_SELECT) setState(ST_TITLE);
+            if (down & KEY_SELECT) titleEnter();
         }
         break;
     }
@@ -121,8 +123,12 @@ static void update(void)
     if (g.flash > 0) g.flash--;
     if (g.shake > 0) g.shake--;
 
-    // 星の流れる速さ。ボス戦では止めて緊張感を出す。
-    starUpdate((g.state == ST_BOSS) ? FX(1) : FX(2));
+    // 星の流れる速さ。ボス戦では落として緊張感を出し、
+    // オープニングでは静止した宇宙に見えるくらいまで遅くする。
+    int speed = FX(2);
+    if (g.state == ST_BOSS)                              speed = FX(1);
+    else if (g.state == ST_CRAWL || g.state == ST_TITLE) speed = FX(1) / 8;
+    starUpdate(speed);
 }
 
 //---------------------------------------------------------------------------------
@@ -133,6 +139,7 @@ static void render(void)
     shotRender();
     effectRender();
     bossRender();
+    openingRender();     // ST_CRAWL / ST_TITLE 以外では何も出さない
     starApply();
 
     // 被弾やボムのときに画面を白く飛ばす
@@ -150,6 +157,7 @@ int main(void)
 
     gfxInit();
     starInit();
+    textInit();
     hudInit();
 
     g.hiScore = 20000;
@@ -158,7 +166,7 @@ int main(void)
     enemyReset();
     effectReset();
     waveReset();
-    setState(ST_TITLE);
+    openingEnter();
 
     // 起動直後の 1 回目の scanKeys() は、キー入力レジスタが確定する前の値を
     // 拾って「全キーが押された」と報告することがある。空読みしておく。

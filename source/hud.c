@@ -58,14 +58,21 @@ void hudDraw(void)
     if (g.state == ST_GAMEOVER || g.state == ST_CLEAR)
         { AT(23, 1); iprintf("START RETRY   SELECT TITLE"); }
     else if (g.state == ST_TITLE)
-        { AT(23, 1); iprintf("START  TO  LAUNCH"); }
+        { AT(23, 1); iprintf("START / TOUCH  TO  LAUNCH"); }
+    else if (g.state == ST_CRAWL)
+        { AT(23, 1); iprintf("START / TOUCH  TO  SKIP"); }
     else
         { AT(23, 1); iprintf("D-PAD MOVE  A BOMB  START PAUSE"); }
 
     switch (g.state) {
+    case ST_CRAWL:
+        AT(10, 8); iprintf("EPISODE   I");
+        AT(12, 6); iprintf("REBEL  ASSAULT");
+        break;
+
     case ST_TITLE:
         AT(5, 9);  iprintf("X - W I N G");
-        AT(7, 6);  iprintf("PRESS  START");
+        AT(7, 4);  iprintf("PRESS  START  OR  TAP");
         AT(10, 2); iprintf("D-PAD  ... MANEUVER");
         AT(11, 2); iprintf("CANNON ... AUTO FIRE");
         AT(12, 2); iprintf("A      ... PROTON BOMB");

@@ -117,7 +117,8 @@ video.o: /home/ichiro16go/dev/nds-examples/xwing/source/video.c \
  /home/ichiro16go/dev/nds-examples/xwing/build/spr_tie.h \
  /home/ichiro16go/dev/nds-examples/xwing/build/spr_boss.h \
  /home/ichiro16go/dev/nds-examples/xwing/build/spr_shots.h \
- /home/ichiro16go/dev/nds-examples/xwing/build/spr_blast.h
+ /home/ichiro16go/dev/nds-examples/xwing/build/spr_blast.h \
+ /home/ichiro16go/dev/nds-examples/xwing/build/spr_logo.h
 /home/ichiro16go/dev/nds-examples/xwing/source/game.h:
 /opt/devkitpro/libnds/include/nds.h:
 /opt/devkitpro/calico/include/calico.h:
@@ -237,3 +238,4 @@ video.o: /home/ichiro16go/dev/nds-examples/xwing/source/video.c \
 /home/ichiro16go/dev/nds-examples/xwing/build/spr_boss.h:
 /home/ichiro16go/dev/nds-examples/xwing/build/spr_shots.h:
 /home/ichiro16go/dev/nds-examples/xwing/build/spr_blast.h:
+/home/ichiro16go/dev/nds-examples/xwing/build/spr_logo.h:
